@@ -1,0 +1,64 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=no">
+        <title>Viz Playground</title>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@700&display=swap">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;500;700&display=swap">
+        <link rel="stylesheet" href="./node_modules/lowcss/dist/low.css">
+        <link rel="stylesheet" href="./node_modules/codecake/codecake.css">
+    </head>
+    <body class="m-0 font-lato text-gray-900 leading-normal">
+        <div class="h-screen w-full flex flex-col">
+            <div class="h-16">
+                <div id="playground:run" class="">Run</div>
+            </div>
+            <div class="w-full h-full grid grid-cols-2 min-h-0">
+                <div class="flex w-full h-full min-h-0">
+                    <div id="playground:editor" class="overflow-hidden flex w-full h-full"></div>
+                </div>
+                <div class="w-full h-full overflow-auto">
+                    <div id="playground:result"></div>
+                </div>
+            </div>
+        </div>
+        <!-- Editor code -->
+        <script type="module">
+            import viz from "./viz.js";
+            import * as CodeCake from "./node_modules/codecake/codecake.js";
+
+            const AsyncFunction = Object.getPrototypeOf(async function (){}).constructor;
+            const editorParent = document.getElementById("playground:editor"); 
+            const resultParent = document.getElementById("playground:result");
+
+            const editor = CodeCake.create(editorParent, {
+                code: window.localStorage.getItem("viz:playground:code") || "",
+                language: "javascript",
+                className: `codecake-dark h-full`,
+                readOnly: false,
+                lineNumbers: true,
+                highlight: CodeCake.highlight,
+            });
+
+            // On code change, save data in local storage
+            editor.onChange(code => {
+                console.log("save");
+                window.localStorage.setItem("viz:playground:code", code);
+            });
+
+            // Register listener to execute code
+            document.getElementById("playground:run").addEventListener("click", async () => {
+                resultParent.replaceChildren();
+                const code = `return (async () => {${editor.getCode()}})();`;
+                try {
+                    const fn = new AsyncFunction("viz", code);
+                    const scene = await fn.call(null, viz);
+                    resultParent.appendChild(scene);
+                }
+                catch(error) {
+                    console.error(error);
+                }
+            });
+            </script>
+    </body>
+</html>
