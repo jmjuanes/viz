@@ -66,6 +66,49 @@ const createPolyline = (points, closed = false) => {
     return path.toString();
 };
 
+// Create a rectangle
+const createRectangle = args => {
+    // Check for no rounded rectangle
+    if (typeof args.radius !== "number" || args.radius === 0 || args.width < 2 * args.radius || args.height < 2 * args.radius) {
+        const points = [
+            [args.x, args.y],
+            [args.x + args.width, args.y],
+            [args.x + args.width, args.y + args.height],
+            [args.x, args.y + args.height]
+        ];
+        return createPolyline(points, true);
+    }
+    const path = createPath();
+    path.move(args.x + args.radius, args.y);
+    path.hLine(args.x + args.width - args.radius);
+    path.arc(args.radius, args.radius, 0, 0, 1, args.x + args.width, args.y + args.radius);
+    path.vLine(args.y + args.height - args.radius);
+    path.arc(args.radius, args.radius, 0, 0, 1, args.x + args.width - args.radius, args.y + args.height);
+    path.hLine(args.x + args.radius);
+    path.arc(args.radius, args.radius, 0, 0, 1, args.x, args.y + args.height - args.radius);
+    path.vLine(args.y + args.radius);
+    path.arc(args.radius, args.radius, 0, 0, 1, args.x + args.radius, args.y);
+    // Check for mask rectangle
+    // if (args.mask === true) {
+    //     rect.line(args.x, args.y);
+    //     rect.line(args.x, args.y + args.height);
+    //     rect.line(args.x + args.width, args.y + args.height);
+    //     rect.line(args.x + args.width, args.y);
+    // }
+    path.close();
+    return path.toString();
+};
+
+// Generate a circle path
+const createCircle = args => {
+    const path = createPath();
+    path.move(args.x - args.radius, args.y);
+    path.arc(args.radius, args.radius, 0, 1, 1, args.x + args.radius, args.y);
+    path.arc(args.radius, args.radius, 0, 1, 1, args.x - args.radius, args.y);
+    path.close();
+    return path.toString();
+};
+
 // Get the value from a data
 const getValueOf = (getValue, datum, index, defaultValue = null) => {
     if (typeof getValue === "function") {
@@ -97,6 +140,44 @@ const pointGeom = (data, options = {}) => {
             element.setAttribute("cy", getValueOf(opt.y, item, index, 0));
             element.setAttribute("fill", getValueOf(opt.fill, item, index, "#000"));
             element.setAttribute("r", getValueOf(opt.radius, item, index, 2));
+        });
+    };
+};
+
+// Rectangle Geom
+const rectangleGeom = (data, options = {}) => {
+    return parent => {
+        return buildGeom(data, options, (datum, index, opt) => {
+            const element = createNode("path", parent);
+            const path = createRectangle({
+                x: getValueOf(opt.x, datum, index, 0),
+                y: getValueOf(opt.y, datum, index, 0),
+                width: getValueOf(opt.width, datum, index, 0),
+                height: getValueOf(opt.height, datum, index, 0),
+                radius: getValueOf(opt.radius, item, index, 0),
+            });
+            element.setAttribute("d", path);
+            element.setAttribute("fill", getValueOf(opt.fill, datum, index, "transparent"));
+            element.setAttribute("stroke", getValueOf(opt.strokeColor, datum, index, "#000"));
+            element.setAttribute("stroke-width", getValueOf(opt.strokeWidth, datum, index, 1));
+        });
+    };
+};
+
+// Circle Geom
+const circleGeom = (data, options = {}) => {
+    return parent => {
+        return buildGeom(data, options, (datum, index, opt) => {
+            const element = createNode("path", parent);
+            const path = createCircle({
+                x: getValueOf(opt.x, datum, index, 0),
+                y: getValueOf(opt.y, datum, index, 0),
+                radius: getValueOf(opt.radius, item, index, 0),
+            });
+            element.setAttribute("d", path);
+            element.setAttribute("fill", getValueOf(opt.fill, datum, index, "transparent"));
+            element.setAttribute("stroke", getValueOf(opt.strokeColor, datum, index, "#000"));
+            element.setAttribute("stroke-width", getValueOf(opt.strokeWidth, datum, index, 1));
         });
     };
 };
@@ -134,7 +215,7 @@ const lineGeom = (data, options = {}) => {
             element.setAttribute("d", path);
             element.setAttribute("fill", "none"); // Prevent filled lines
             element.setAttribute("stroke", getValueOf(opt.strokeColor, datum, index, "#000"));
-            element.setAttribute("strong-width", getValueOf(opt.strokeWidth, datum, index, 1));
+            element.setAttribute("stroke-width", getValueOf(opt.strokeWidth, datum, index, 1));
         });
     };
 };
@@ -193,6 +274,8 @@ export default {
     geoms: {
         text: textGeom,
         point: pointGeom,
+        rectangle: rectangleGeom,
+        circle: circleGeom,
         line: lineGeom,
         xRule: xRuleGeom,
         yRule: yRuleGeom,
