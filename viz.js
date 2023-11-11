@@ -1,4 +1,4 @@
-// Just a tiny utility to create SVG elements
+// Create SVG elements
 const createNode = (tag, parent) => {
     const element = document.createElementNS("http://www.w3.org/2000/svg", tag);
     if (parent) {
@@ -7,7 +7,7 @@ const createNode = (tag, parent) => {
     return element;
 };
 
-// Tiny utility to get the value from a data
+// Get the value from a data
 const getValueOf = (getValue, datum, index, defaultValue = null) => {
     if (typeof getValue === "function") {
         return getValue(datum, index);
@@ -18,21 +18,32 @@ const getValueOf = (getValue, datum, index, defaultValue = null) => {
     return getValue ?? defaultValue;
 };
 
-// Basic point geom
+const buildGeom = (data, options, fn) => {
+    // Check if a data object has been provided, so we will generate a geom for each datum
+    if (data && Array.isArray(data)) {
+        return data.forEach((item, index) => fn(item, index, options));
+    }
+    // If not, generate a single geom using provided options
+    else if (data && typeof data === "object") {
+        return fn(null, 0, data);
+    }
+};
+
+// Point geom
 const pointGeom = (data, options = {}) => {
     return (parent, draw) => {
-        (data || []).forEach((item, index) => {
+        buildGeom(data, options, (item, index, opt) => {
             const element = createNode("circle", parent);
-            element.setAttribute("cx", getValueOf(options.x, item, index, 0));
-            element.setAttribute("cy", getValueOf(options.y, item, index, 0));
-            element.setAttribute("fill", getValueOf(options.fill, item, index, "#000"));
-            element.setAttribute("r", getValueOf(options.radius, item, index, 2));
+            element.setAttribute("cx", getValueOf(opt.x, item, index, 0));
+            element.setAttribute("cy", getValueOf(opt.y, item, index, 0));
+            element.setAttribute("fill", getValueOf(opt.fill, item, index, "#000"));
+            element.setAttribute("r", getValueOf(opt.radius, item, index, 2));
         });
     };
 };
 
 // Generate a simple plot
-const plot = (options = {}, parent = null) => {
+const createPlot = (options = {}, parent = null) => {
     const scene = createNode("svg", parent);
     const target = createNode("g", scene);
     // Set scene attributes
@@ -48,11 +59,12 @@ const plot = (options = {}, parent = null) => {
     (options.geoms ?? []).forEach(geom => {
         return geom(createNode("g", target), {width, height});
     });
-
     return scene;
 };
 
 export default {
-    plot,
-    point: pointGeom,
+    plot: createPlot,
+    geoms: {
+        point: pointGeom,
+    },
 };
