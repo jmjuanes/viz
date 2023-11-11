@@ -1,3 +1,8 @@
+// Clamp the provided value
+const clamp = (value, min, max) => {
+    return Math.min(max, Math.max(min, value));
+};
+
 // Create SVG elements
 const createNode = (tag, parent) => {
     const element = document.createElementNS("http://www.w3.org/2000/svg", tag);
@@ -5,6 +10,91 @@ const createNode = (tag, parent) => {
         parent.appendChild(element);
     }
     return element;
+};
+
+// Build a linear scale
+// Returns a function f(x) € [rangeMin, rangeMax], where x € [domainStart, domainEnd]
+const linearScale = (options = {}) => {
+    const domain = options?.domain;
+    const range = options?.range;
+    if (options?.zero) {
+        domain[0] = Math.min(0, domain[0]); // ensure that domain start has a zero
+        domain[1] = Math.max(0, domain[1]); // ensure that domain end has a zero
+    }
+    // Scale generator
+    const scale = value => {
+        const v = clamp(value, domain[0], domain[1]); 
+        return range[0] + (range[1] - range[0]) * (v - domain[0]) / (domain[1] - domain[0]);
+    };
+    // Add scale metadata
+    scale.type = "linear";
+    scale.range = range;
+    scale.domain = domain;
+    // Invert the scale transform
+    scale.invert = value => {
+        const v = clamp(value, range[0], range[1]);
+        return domain[0] + (v - range[0]) * (domain[1] - domain[0]) / (range[1] - range[0]);
+    };
+    return scale;
+};
+
+// Discrete scale generator
+const discreteScale = (options = {}) => {
+    const range = options?.range;
+    const domain = new Map();
+    options?.domain.forEach((value, index) => {
+        domain.set(value, index);
+    });
+    const scale = value => {
+        return domain.has(value) ? range[domain.get(value) % range.length] : null;
+    };
+    scale.type = "discrete";
+    scale.range = range;
+    scale.domain = options?.domain;
+    return scale;
+};
+
+// Interval scale
+const intervalScale = (options = {}) => {
+    const margin = clamp(options?.margin ?? 0, 0, 1);
+    const spacing = clamp(options?.spacing ?? 0, 0, 1);
+    const domain = options?.domain;
+    const range = options?.range;
+    const intervals = domain.length; // Initialize the number of intervals
+    const length = range[1] - range[0];
+    const step = length / (2 * margin + (intervals - 1) * spacing + intervals);
+    const scale = discreteScale({
+        range: domain.map((value, index) => {
+            return range[0] + step * (margin + index * spacing + index);
+        }), 
+        domain: domain,
+    });
+    scale.type = "interval";
+    scale.step = step;
+    scale.range = range;
+    scale.spacing = spacing;
+    scale.margin = margin;
+    return scale;
+};
+
+// Point scale generator
+const pointScale = (options = {}) => {
+    const margin = clamp(options?.margin ?? 0, 0, 1);
+    const domain = options?.domain;
+    const range = options?.range;
+    const length = range[1] - range[0];
+    const step = length / (2 * margin + domain.length - 1);
+    const scale = discreteScale({
+        range: domain.map((value, index) => {
+            return range[0] + step * (margin + index);
+        }),
+        domain: domain
+    });
+    scale.type = "point";
+    scale.step = step;
+    scale.margin = margin,
+    scale.range = range;
+    return scale;
 };
 
 // Create a path
@@ -408,5 +498,11 @@ export default {
         yRule: yRuleGeom,
         curve: curveGeom,
         area: areaGeom,
+    },
+    scale: {
+        linear: linearScale,
+        discrete: discreteScale,
+        interval: intervalScale,
+        point: pointScale,
     },
 };
