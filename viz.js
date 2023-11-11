@@ -109,6 +109,76 @@ const createCircle = args => {
     return path.toString();
 };
 
+// Linear curve generator
+const createLinearCurve = path => {
+    let state = 0;
+    return {
+        end: () => null,
+        point: (x, y) => {
+            // State 0: move to the specified point
+            // State 1: draw a line to this point
+            state === 0 ? path.move(x, y) : path.line(x, y);
+            state = 1;
+        },
+    };
+};
+
+// Catmull Rom curve generator
+const createCatmullRomCurve = (path, t) => {
+    let state = 0;
+    let x0 = null, x1 = null, x2 = null;
+    let y0 = null, y1 = null, y2 = null;
+    const tension = (typeof t === "number" ? Math.min(Math.max(t, 0), 1) : 0.5) * 12;
+    const addPoint = (x, y) => {
+        // State 0 or 3: first point added or resume the interpolation
+        if (state === 0 || state === 3) {
+            // Move to the specified point only if is the first point
+            if (state === 0) {
+                path.move(x, y);
+            }
+            // Draw a line to the specified point
+            else {
+                path.line(x, y);
+            }
+            // Duplicate this point
+            x2 = x, y2 = y;
+            state = 1;
+        }
+        // State 1: second point added --> update the state and continue
+        else if (state === 1) {
+            state = 2;
+        }
+        // State 2: new point: draw the curve
+        else if (state === 2) {
+            const c1x = (-x0 + tension * x1 + x2) / tension;
+            const c1y = (-y0 + tension * y1 + y2) / tension;
+            const c2x = (x1 + tension * x2 - x) / tension;
+            const c2y = (y1 + tension * y2 - y) / tension;
+            path.bezierCurve(c1x, c1y, c2x, c2y, x2, y2);
+        }
+        // Update the points
+        x0 = x1, y0 = y1;
+        x1 = x2, y1 = y2;
+        x2 = x, y2 = y;
+    };
+    return {
+        end: () => {
+            if (state === 2) {
+                addPoint(x2, y2);
+            }
+            state = 3;
+        },
+        point: (x, y) => addPoint(x, y),
+    };
+};
+
+const createCurve = (curve = "linear", path) => {
+    if (curve === "catmull" || curve === "catmull-rom") {
+        return createCatmullRomCurve(path);
+    }
+    return createLinearCurve(path);
+};
+
 // Get the value from a data
 const getValueOf = (getValue, datum, index, defaultValue = null) => {
     if (typeof getValue === "function") {
@@ -250,6 +320,61 @@ const yRuleGeom = (data, options = {}) => {
     };
 };
 
+// Curve geom
+const curveGeom = (data, options = {}) => {
+    return parent => {
+        const path = createPath();
+        const element = createNode("path", parent);
+        element.setAttribute("fill", "none"); // Prevent filled lines
+        element.setAttribute("stroke", getValueOf(options.strokeColor, data[0], 0, "#000"));
+        element.setAttribute("stroke-width", getValueOf(options.strokeWidth, data[0], 0, 1));
+        // Data must be a valid array and with at least 2 items
+        if (data && data.length >= 2) {
+            const curveType = getValueOf(options.curve, data[0], 0, "linear");
+            const curve = createCurve(curveType, path);
+            for (let i = 0; i < data.length; i++) {
+                const x = getValueOf(options.x, data[i], i, 0);
+                const y = getValueOf(options.y, data[i], i, 0);
+                curve.point(x, y);
+            }
+            curve.end();
+        }
+        element.setAttribute("d", path.toString());
+    };
+};
+
+// Area geom
+const areaGeom = (data, options = {}) => {
+    return parent => {
+        const path = createPath();
+        const element = createNode("path", parent);
+        element.setAttribute("fill", getValueOf(options.fill, data[0], 0, "#000"));
+        element.setAttribute("stroke", getValueOf(options.strokeColor, data[0], 0, "#000"));
+        element.setAttribute("stroke-width", getValueOf(options.strokeWidth, data[0], 0, 1));
+        // Data must be a valid array and with at least 2 items
+        if (data && data.length >= 2) {
+            const curveType = getValueOf(options.curve, data[0], 0, "linear");
+            const curve = createCurve(curveType, path);
+            // Move forward
+            for (let i = 0; i < data.length; i++) {
+                const x = getValueOf(options.x1, data[i], i, 0);
+                const y = getValueOf(options.y1, data[i], i, 0);
+                curve.point(x, y);
+            }
+            curve.end();
+            // Move reverse
+            for (let i = data.length - 1; i >= 0; i--) {
+                const x = getValueOf(options.x2, data[i], i, 0);
+                const y = getValueOf(options.y2, data[i], i, 0);
+                curve.point(x, y);
+            }
+            curve.end();
+            path.close();
+        }
+        element.setAttribute("d", path.toString());
+    };
+};
+
 // Generate a simple plot
 const createPlot = (options = {}, parent = null) => {
     const scene = createNode("svg", parent);
@@ -281,5 +406,7 @@ export default {
         line: lineGeom,
         xRule: xRuleGeom,
         yRule: yRuleGeom,
+        curve: curveGeom,
+        area: areaGeom,
     },
 };
