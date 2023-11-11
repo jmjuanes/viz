@@ -42,6 +42,27 @@ const pointGeom = (data, options = {}) => {
     };
 };
 
+// Text geom
+const textGeom = (data, options = {}) => {
+    return (parent, draw) => {
+        buildGeom(data, options, (datum, index, opt) => {
+            const element = createNode("text", parent);
+            const x = getValueOf(opt.x, datum, index, 0);
+            const y = getValueOf(opt.y, datum, index, 0);
+            element.setAttribute("x", x);
+            element.setAttribute("y", y);
+            element.setAttribute("text", getValueOf(opt.text, datum, index, ""));
+            if (typeof opt.rotation !== "undefined") {
+                element.setAttribute("transform", `rotate(${getValueOf(opt.rotation, datum, index)}, ${x}, ${y})`);
+            }
+            element.setAttribute("text-anchor", getValueOf(opt.textAnchor, datum, index, "middle"));
+            element.setAttribute("dominant-baseline", getValueOf(opt.baseline, datum, index, "middle"));
+            element.setAttribute("fill", getValueOf(opt.fill, datum, index, "#000"));
+            element.setAttribute("font-size", getValueOf(opt.size, datum, index, 16));
+        });
+    };
+};
+
 // Generate a simple plot
 const createPlot = (options = {}, parent = null) => {
     const scene = createNode("svg", parent);
@@ -65,6 +86,7 @@ const createPlot = (options = {}, parent = null) => {
 export default {
     plot: createPlot,
     geoms: {
+        text: textGeom,
         point: pointGeom,
     },
 };
