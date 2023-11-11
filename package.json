@@ -1,0 +1,30 @@
+{
+    "name": "viz-js",
+    "version": "0.0.0",
+    "type": "module",
+    "description": "Micro visualization toolkit for data exploration",
+    "repository": "https://github.com/jmjuanes/viz.git",
+    "homepage": "https://www.josemi.xyz/viz",
+    "author": "Josemi Juanes <hello@josemi.xyz>",
+    "bugs": "https://github.com/jmjuanes/viz/issues",
+    "main": "viz.js",
+    "module": "viz.js",
+    "exports": {
+        ".": "./viz.js",
+        "./viz.js": "./viz.js",
+        "./package.json": "./package.json"
+    },
+    "scripts": {
+        "serve": "serve ."
+    },
+    "files": [
+        "README.md",
+        "LICENSE",
+        "viz.js"
+    ],
+    "license": "MIT",
+    "devDependencies": {
+        "codecake": "^0.3.0",
+        "lowcss": "^0.17.0"
+    }
+}

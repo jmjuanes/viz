@@ -1,2 +1,3 @@
-# vu
-Micro visualization toolkit for building interactive graphics for data exploration
+# viz
+
+> Micro toolkit for building interactive visualizations for data exploration
