@@ -505,4 +505,7 @@ export default {
         interval: intervalScale,
         point: pointScale,
     },
+    math: {
+        clamp: clamp,
+    },
 };
