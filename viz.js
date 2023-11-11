@@ -112,10 +112,12 @@ const createCircle = args => {
 // Get the value from a data
 const getValueOf = (getValue, datum, index, defaultValue = null) => {
     if (typeof getValue === "function") {
-        return getValue(datum, index);
+        return getValue(datum, index) ?? defaultValue;
     }
-    else if (typeof getValue === "string" && datum !== null) {
-        return datum[getValue];
+    else if (typeof getValue === "string" && getValue) {
+        if (typeof datum === "object" && datum !== null) {
+            return datum[getValue] ?? getValue;
+        }
     }
     return getValue ?? defaultValue;
 };
@@ -133,7 +135,7 @@ const buildGeom = (data, options, fn) => {
 
 // Point geom
 const pointGeom = (data, options = {}) => {
-    return (parent, draw) => {
+    return parent => {
         buildGeom(data, options, (item, index, opt) => {
             const element = createNode("circle", parent);
             element.setAttribute("cx", getValueOf(opt.x, item, index, 0));
@@ -154,7 +156,7 @@ const rectangleGeom = (data, options = {}) => {
                 y: getValueOf(opt.y, datum, index, 0),
                 width: getValueOf(opt.width, datum, index, 0),
                 height: getValueOf(opt.height, datum, index, 0),
-                radius: getValueOf(opt.radius, item, index, 0),
+                radius: getValueOf(opt.radius, datum, index, 0),
             });
             element.setAttribute("d", path);
             element.setAttribute("fill", getValueOf(opt.fill, datum, index, "transparent"));
@@ -172,7 +174,7 @@ const circleGeom = (data, options = {}) => {
             const path = createCircle({
                 x: getValueOf(opt.x, datum, index, 0),
                 y: getValueOf(opt.y, datum, index, 0),
-                radius: getValueOf(opt.radius, item, index, 0),
+                radius: getValueOf(opt.radius, datum, index, 0),
             });
             element.setAttribute("d", path);
             element.setAttribute("fill", getValueOf(opt.fill, datum, index, "transparent"));
@@ -184,14 +186,14 @@ const circleGeom = (data, options = {}) => {
 
 // Text geom
 const textGeom = (data, options = {}) => {
-    return (parent, draw) => {
+    return parent => {
         buildGeom(data, options, (datum, index, opt) => {
             const element = createNode("text", parent);
             const x = getValueOf(opt.x, datum, index, 0);
             const y = getValueOf(opt.y, datum, index, 0);
             element.setAttribute("x", x);
             element.setAttribute("y", y);
-            element.setAttribute("text", getValueOf(opt.text, datum, index, ""));
+            element.textContent = getValueOf(opt.text, datum, index, "");
             if (typeof opt.rotation !== "undefined") {
                 element.setAttribute("transform", `rotate(${getValueOf(opt.rotation, datum, index)}, ${x}, ${y})`);
             }
@@ -229,7 +231,7 @@ const xRuleGeom = (data, options = {}) => {
             element.setAttribute("d", createPolyline([[0, y], [draw.width, y]]));
             element.setAttribute("fill", "none"); // Prevent filled lines
             element.setAttribute("stroke", getValueOf(opt.strokeColor, datum, index, "#000"));
-            element.setAttribute("strong-width", getValueOf(opt.strokeWidth, datum, index, 1));
+            element.setAttribute("stroke-width", getValueOf(opt.strokeWidth, datum, index, 1));
         });
     };
 };
@@ -243,7 +245,7 @@ const yRuleGeom = (data, options = {}) => {
             element.setAttribute("d", createPolyline([[x, 0], [x, draw.height]]));
             element.setAttribute("fill", "none"); // Prevent filled lines
             element.setAttribute("stroke", getValueOf(opt.strokeColor, datum, index, "#000"));
-            element.setAttribute("strong-width", getValueOf(opt.strokeWidth, datum, index, 1));
+            element.setAttribute("stroke-width", getValueOf(opt.strokeWidth, datum, index, 1));
         });
     };
 };
@@ -271,7 +273,7 @@ const createPlot = (options = {}, parent = null) => {
 export default {
     plot: createPlot,
     path: createPath,
-    geoms: {
+    geom: {
         text: textGeom,
         point: pointGeom,
         rectangle: rectangleGeom,
