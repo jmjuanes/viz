@@ -571,7 +571,6 @@ const renderAxis = (parent, options, scale, plot) => {
     //     labelInterval = context.value(props.labelInterval, null, defaultProps.labelInterval);
     // }
     // Display each tick value
-    console.log(values);
     values.forEach((value, index) => {
         let valuePosition = scale(value, index);
         let x = 0, y = 0, textAnchor = "middle", textBaseline = "middle";
