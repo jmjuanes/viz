@@ -3,6 +3,50 @@ const clamp = (value, min, max) => {
     return Math.min(max, Math.max(min, value));
 };
 
+// Nice number for Heckbert algorithm
+const niceNumber = (x, round) => {
+    const exp = Math.floor(Math.log10(x));
+    const f = x / Math.pow(10, exp);
+    let nf = 0;
+    if (round === true) {
+        nf = (f < 1.5) ? 1 : ((f < 3) ? 2 : ((f < 7) ? 5 : 10));
+    }
+    else  {
+        nf = (f <= 1) ? 1 : ((f <= 2) ? 2 : ((f <= 5) ? 5 : 10));
+    }
+    return nf * Math.pow(10, exp);
+};
+
+// Generate values in the provided range using the Heckbert algorithm
+const ticks = (start, end, n, tight = false) => {
+    if (start === end) {
+        return [start];
+    }
+    // Check if end < start --> call this method with the reversed arguments
+    if (end < start) {
+        return ticks(end, start, n, tight);
+    }
+    const range = niceNumber(end - start, false);
+    const step = niceNumber(range / (n - 1), true); // Ticks separation
+    const ticksStart = Math.floor(start / step) * step; // Ticks start
+    const ticksEnd = Math.ceil(end / step) * step; // Ticks end
+    const ticksValues = []; // Output ticks values
+    for (let value = ticksStart; value <= ticksEnd; value = value + step) {
+        ticksValues.push(parseFloat(value.toFixed(8)));
+    }
+    // Check for tight option --> remove ticks outside of the [start, end] interval
+    // and add start and end values
+    if (tight) {
+        ticksValues = ticksValues.filter(value => {
+            return start < value && value < end;
+        });
+        // Insert start and end values
+        return [start, ...ticksValues, end];
+    }
+    // Return ticks values
+    return ticksValues;
+};
+
 // Create SVG elements
 const createNode = (tag, parent) => {
     const element = document.createElementNS("http://www.w3.org/2000/svg", tag);
@@ -30,6 +74,7 @@ const linearScale = (options = {}) => {
     scale.type = "linear";
     scale.range = range;
     scale.domain = domain;
+    scale.discrete = false;
     // Invert the scale transform
     scale.invert = value => {
         const v = clamp(value, range[0], range[1]);
@@ -51,6 +96,7 @@ const discreteScale = (options = {}) => {
     scale.type = "discrete";
     scale.range = range;
     scale.domain = options?.domain;
+    scale.discrete = true;
     return scale;
 };
 
@@ -485,6 +531,106 @@ const areaGeom = (data, options = {}) => {
     };
 };
 
+// Interpolate scale values
+const getAxisValues = (scale, count) => {
+    if (scale.discrete) {
+        return scale.domain;
+    }
+    // Get the range values
+    const start = Math.min.apply(null, scale.domain); // Get start value
+    const end = Math.max.apply(null, scale.domain); // Get end value
+    return ticks(start, end, count).filter(value => {
+        return start <= value && value <= end;
+    });
+};
+
+// Render axis
+const renderAxis = (parent, options, scale, plot) => {
+    const position = options?.position;
+    const values = getAxisValues(scale, 5);
+    const axisPosition = {};
+    if (position === "top" || position === "bottom") {
+        axisPosition.x1 = 0 + Math.min(scale.range[0], scale.range[1]);
+        axisPosition.y1 = (position === "top") ? 0 : plot.height;
+        // axisPosition.x2 = 0 + Math.max(scale.range[0], scale.range[1]);
+        // axisPosition.y2 = (position === "top") ? 0 : plot.height;
+    }
+    else {
+        axisPosition.x1 = (position === "left") ? 0 : plot.width;
+        axisPosition.y1 = 0 + Math.min(scale.range[0], scale.range[1]);
+        // axisPosition.x2 = (position === "left") ? 0 : plot.width;
+        // axisPosition.y2 = 0 + Math.max(scale.range[0], scale.range[1]);
+    }
+    // Display ticks
+    const offset = 5;
+    // let labelAngle = context.value(props.labelRotation, null, defaultProps.labelRotation); //Get rotation angle
+    // let labelOffset = context.value(props.labelOffset, 0, defaultProps.labelOffset); //Get ticks offset
+    // let labelTick = context.value(props.tick, null, defaultProps.tick); //Display tick slot
+    // let labelInterval = 0; //Interval position
+    // if (scale.type === "interval") {
+    //     labelInterval = context.value(props.labelInterval, null, defaultProps.labelInterval);
+    // }
+    // Display each tick value
+    values.forEach((value, index) => {
+        let valuePosition = scale(value, index), x = 0, y = 0;
+        let linePoints = [], gridPoints = [];
+        if (valuePosition === null || typeof valuePosition === "undefined") {
+            return;
+        }
+        // Check for interval scale
+        if (scale.type === "interval") {
+            valuePosition = valuePosition + scale.step * 0.5; // labelInterval;
+        }
+        // Calculate tick position
+        if (position === "left" || position === "right") {
+            x = axisPosition.x1 + (((position === "left") ? -1 : +1) * offset);
+            y = valuePosition + 0; //props.y + props.height - position;
+            // Generate tick line points
+            linePoints = [
+                [axisPosition.x1, y],
+                [axisPosition.x1 + (((position === "left") ? -1 : +1) * offset / 3), y],
+            ];
+            // Generate grid line points
+            gridPoints = [[0, y], [plot.width, y]];
+        }
+        else {
+            x = valuePosition + 0;
+            y = axisPosition.y1 + (((position === "top") ? -1 : +1) * offset);
+            // Generate tick line points
+            linePoints = [
+                [x, axisPosition.y1],
+                [x, axisPosition.y1 + (((position === "top") ? -1 : +1) * offset / 3)],
+            ];
+            // Generate grid line points
+            gridPoints = [[x, 0], [x, plot.height]];
+        }
+        // Render tick text
+        const text = createNode("text", parent);
+        text.textContet = typeof options.format === "function" ? options.format(value) : value;
+        text.setAttribute("x", x);
+        text.setAttribute("y", y);
+        text.setAttribute("text-anchor", options?.tickAlign ?? "middle");
+        text.setAttribute("alignment-baseline", options?.tickBaseline ?? "middle");
+        // text.setAttribute("transform", `rotate(${labelAngle}, ${labelX}, ${labelY})`); 
+        text.setAttribute("fill", options?.tickColor ?? "#000");
+        text.setAttribute("font-weight", options?.tickWeight ?? "bold");
+        text.setAttribute("font-size", options?.tickSize ?? "11px");
+        // Render tick line
+        const line = createNode("path", parent);
+        line.setAttribute("d", createPolyline(linePoints, false));
+        line.setAttribute("fill", "none");
+        line.setAttribute("stroke-width", "1px");
+        line.setAttribute("stroke", options?.tickColor ?? "#000");
+        // Render grid line
+        const grid = createNode("path", parent);
+        grid.setAttribute("d", createPolyline(gridPoints, false));
+        grid.setAttribute("fill", "none");
+        grid.setAttribute("stroke-width", "1px");
+        grid.setAttribute("stroke", options?.gridStrokeColor ?? "#000");
+        grid.setAttribute("opacity", options?.grid ? (options?.gridOpacity ?? 0.5) : 0);
+    });
+};
+
 // Build plot scales
 const getPlotScale = (props, defaultScale = "linear", range = []) => {
     const scale = scalesMap.get(props?.scale || defaultScale);
@@ -512,6 +658,16 @@ const createPlot = (options = {}, parent = null) => {
         x: getPlotScale(options?.x, "linear", [0, width]),
         y: getPlotScale(options?.y, "linear", [height, 0]),
     };
+    // Build axis
+    ["x", "y"].forEach(axis => {
+        const axisParent = createNode("g", target);
+        const axisOptions = {
+            ...options?.[axis],
+            grid: options?.[axis] ?? options?.grid ?? false,
+            position: axis === "x" ? "bottom" : "left",
+        };
+        renderAxis(axisParent, axisOptions, scales[axis], {width, height, scales});
+    });
     // Iterate over all available geoms
     (options.geoms ?? []).forEach(geom => {
         if (geom && typeof geom === "function") {
@@ -543,5 +699,7 @@ export default {
     },
     math: {
         clamp: clamp,
+        niceNumber: niceNumber,
+        ticks: ticks,
     },
 };
