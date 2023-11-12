@@ -571,8 +571,10 @@ const renderAxis = (parent, options, scale, plot) => {
     //     labelInterval = context.value(props.labelInterval, null, defaultProps.labelInterval);
     // }
     // Display each tick value
+    console.log(values);
     values.forEach((value, index) => {
-        let valuePosition = scale(value, index), x = 0, y = 0;
+        let valuePosition = scale(value, index);
+        let x = 0, y = 0, textAnchor = "middle", textBaseline = "middle";
         let linePoints = [], gridPoints = [];
         if (valuePosition === null || typeof valuePosition === "undefined") {
             return;
@@ -585,10 +587,11 @@ const renderAxis = (parent, options, scale, plot) => {
         if (position === "left" || position === "right") {
             x = axisPosition.x1 + (((position === "left") ? -1 : +1) * offset);
             y = valuePosition + 0; //props.y + props.height - position;
+            textAnchor = position === "left" ? "end" : "start";
             // Generate tick line points
             linePoints = [
                 [axisPosition.x1, y],
-                [axisPosition.x1 + (((position === "left") ? -1 : +1) * offset / 3), y],
+                [axisPosition.x1 + (((position === "left") ? -1 : +1) * offset / 2), y],
             ];
             // Generate grid line points
             gridPoints = [[0, y], [plot.width, y]];
@@ -596,25 +599,26 @@ const renderAxis = (parent, options, scale, plot) => {
         else {
             x = valuePosition + 0;
             y = axisPosition.y1 + (((position === "top") ? -1 : +1) * offset);
+            textBaseline = position === "bottom" ? "hanging" : "baseline";
             // Generate tick line points
             linePoints = [
                 [x, axisPosition.y1],
-                [x, axisPosition.y1 + (((position === "top") ? -1 : +1) * offset / 3)],
+                [x, axisPosition.y1 + (((position === "top") ? -1 : +1) * offset / 2)],
             ];
             // Generate grid line points
             gridPoints = [[x, 0], [x, plot.height]];
         }
         // Render tick text
         const text = createNode("text", parent);
-        text.textContet = typeof options.format === "function" ? options.format(value) : value;
+        text.textContent = typeof options.format === "function" ? options.format(value) : value;
         text.setAttribute("x", x);
         text.setAttribute("y", y);
-        text.setAttribute("text-anchor", options?.tickAlign ?? "middle");
-        text.setAttribute("alignment-baseline", options?.tickBaseline ?? "middle");
+        text.setAttribute("text-anchor", options?.tickAlign ?? textAnchor);
+        text.setAttribute("alignment-baseline", options?.tickBaseline ?? textBaseline);
         // text.setAttribute("transform", `rotate(${labelAngle}, ${labelX}, ${labelY})`); 
         text.setAttribute("fill", options?.tickColor ?? "#000");
-        text.setAttribute("font-weight", options?.tickWeight ?? "bold");
-        text.setAttribute("font-size", options?.tickSize ?? "11px");
+        text.style.setProperty("font-weight", options?.tickWeight ?? "bold");
+        text.style.setProperty("font-size", options?.tickSize ?? "11px");
         // Render tick line
         const line = createNode("path", parent);
         line.setAttribute("d", createPolyline(linePoints, false));
@@ -626,8 +630,8 @@ const renderAxis = (parent, options, scale, plot) => {
         grid.setAttribute("d", createPolyline(gridPoints, false));
         grid.setAttribute("fill", "none");
         grid.setAttribute("stroke-width", "1px");
-        grid.setAttribute("stroke", options?.gridStrokeColor ?? "#000");
-        grid.setAttribute("opacity", options?.grid ? (options?.gridOpacity ?? 0.5) : 0);
+        grid.setAttribute("stroke", options?.gridColor ?? "#000");
+        grid.setAttribute("opacity", options?.grid ? (options?.gridOpacity ?? 0.2) : 0);
     });
 };
 
@@ -650,8 +654,8 @@ const createPlot = (options = {}, parent = null) => {
     scene.style.setProperty("user-select", "none"); // Disable user selection
     // Calculate margins and drawing size
     const margin = options.margin ?? 0;
-    const width = (options.width ?? 500) - margin;
-    const height = (options.height ?? 500) - margin;
+    const width = (options.width ?? 500) - 2 * margin;
+    const height = (options.height ?? 500) - 2 * margin;
     target.setAttribute("transform", `translate(${margin},${margin})`);
     // Initialize plot scales
     const scales = {
