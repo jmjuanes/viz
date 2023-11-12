@@ -616,8 +616,8 @@ const renderAxis = (parent, options, scale, plot) => {
         text.setAttribute("alignment-baseline", options?.tickBaseline ?? textBaseline);
         // text.setAttribute("transform", `rotate(${labelAngle}, ${labelX}, ${labelY})`); 
         text.setAttribute("fill", options?.tickColor ?? "#000");
-        text.style.setProperty("font-weight", options?.tickWeight ?? "bold");
-        text.style.setProperty("font-size", options?.tickSize ?? "11px");
+        text.style.setProperty("font-weight", options?.tickWeight ?? "normal");
+        text.style.setProperty("font-size", options?.tickSize ?? "10px");
         // Render tick line
         const line = createNode("path", parent);
         line.setAttribute("d", createPolyline(linePoints, false));
