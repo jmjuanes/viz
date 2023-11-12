@@ -480,7 +480,9 @@ const createPlot = (options = {}, parent = null) => {
     target.setAttribute("transform", `translate(${margin},${margin})`);
     // Iterate over all available geoms
     (options.geoms ?? []).forEach(geom => {
-        return geom(createNode("g", target), {width, height});
+        if (geom && typeof geom === "function") {
+            geom(createNode("g", target), {width, height});
+        }
     });
     return scene;
 };
