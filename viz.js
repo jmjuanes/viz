@@ -13,7 +13,7 @@ const createNode = (tag, parent) => {
 };
 
 // Build a linear scale
-// Returns a function f(x) € [rangeMin, rangeMax], where x € [domainStart, domainEnd]
+// Returns a function f(x) in [rangeMin, rangeMax], where x in [domainStart, domainEnd]
 const linearScale = (options = {}) => {
     const domain = options?.domain;
     const range = options?.range;
