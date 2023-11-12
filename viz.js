@@ -666,7 +666,7 @@ const createPlot = (options = {}, parent = null) => {
         const axisParent = createNode("g", target);
         const axisOptions = {
             ...options?.[axis],
-            grid: options?.[axis] ?? options?.grid ?? false,
+            grid: options?.[axis]?.grid ?? options?.grid ?? false,
             position: axis === "x" ? "bottom" : "left",
         };
         renderAxis(axisParent, axisOptions, scales[axis], {width, height, scales});
