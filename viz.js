@@ -326,7 +326,7 @@ const createCurve = (curve = "linear", path) => {
 
 // Get the value from a data
 const getValueOf = (getValue, datum, index, defaultValue = null, scale = null) => {
-    let value = defaultValue;
+    let value = getValue ?? defaultValue;
     if (typeof getValue === "function") {
         value = getValue(datum, index) ?? defaultValue;
     }
