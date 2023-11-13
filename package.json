@@ -1,6 +1,6 @@
 {
     "name": "viz-js",
-    "version": "0.0.0",
+    "version": "0.0.1",
     "type": "module",
     "description": "Micro visualization toolkit for building interactive graphics for data exploration.",
     "repository": "https://github.com/jmjuanes/viz.git",
