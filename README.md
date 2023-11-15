@@ -1,10 +1,10 @@
-# viz
+# VizJar
 
-**Viz** is a JavaScript plotting library for the web, designed to simplify the process of creating visualizations. It follows a declarative approach and is rooted in the principles of the Grammar of Graphics, making it intuitive and powerful for users of all levels.
+**VizJar** is a JavaScript plotting library for the web, designed to simplify the process of creating visualizations. It follows a declarative approach and is rooted in the principles of the Grammar of Graphics, making it intuitive and powerful for users of all levels.
 
 ## Try it
 
-We are working on a playground pp that you can use to try **viz**.
+We are working on a playground app that you can use to try **vizjar**.
 
 ## Getting Started
 
@@ -14,16 +14,16 @@ You can add it to your project using YARN or NPM:
 
 ```bash
 ## Install using NPM
-$ npm install --save viz-js
+$ npm install --save vizjar
 
 ## Install using YARN
-$ yarn add viz-js
+$ yarn add vizjar
 ```
 
 ### Usage
 
 ```javascript
-import viz from "viz-js";
+import viz from "vizjar";
 
 // 1. Get the element where the plot will be displayed
 const parent = document.getElementById("root");

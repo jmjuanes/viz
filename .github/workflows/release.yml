@@ -6,7 +6,7 @@ on:
 jobs:
   release:
     name: Release
-    if: ${{ github.repository == 'jmjuanes/viz' }}
+    if: ${{ github.repository == 'jmjuanes/vizjar' }}
     runs-on: ubuntu-latest
     ## Set permissions to the github token
     ## https://github.com/softprops/action-gh-release#permissions 
@@ -18,7 +18,7 @@ jobs:
 
   publish:
     name: Publish
-    if: ${{ github.repository == 'jmjuanes/viz' }}
+    if: ${{ github.repository == 'jmjuanes/vizjar' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

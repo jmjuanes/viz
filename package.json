@@ -1,17 +1,17 @@
 {
-    "name": "viz-js",
+    "name": "vizjar",
     "version": "0.0.1",
     "type": "module",
     "description": "Micro visualization toolkit for building interactive graphics for data exploration.",
-    "repository": "https://github.com/jmjuanes/viz.git",
-    "homepage": "https://www.josemi.xyz/viz",
+    "repository": "https://github.com/jmjuanes/vizjar.git",
+    "homepage": "https://www.josemi.xyz/vizjar",
     "author": "Josemi Juanes <hello@josemi.xyz>",
-    "bugs": "https://github.com/jmjuanes/viz/issues",
-    "main": "viz.js",
-    "module": "viz.js",
+    "bugs": "https://github.com/jmjuanes/vizjar/issues",
+    "main": "vizjar.js",
+    "module": "vizjar.js",
     "exports": {
-        ".": "./viz.js",
-        "./viz.js": "./viz.js",
+        ".": "./vizjar.js",
+        "./viz.js": "./vizjar.js",
         "./package.json": "./package.json"
     },
     "scripts": {
@@ -20,7 +20,7 @@
     "files": [
         "README.md",
         "LICENSE",
-        "viz.js"
+        "vizjar.js"
     ],
     "license": "MIT",
     "devDependencies": {
