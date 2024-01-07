@@ -56,6 +56,61 @@ parent.appendChild(plot);
 
 **Note**: this is still a work in progress.
 
+### Operations
+
+We provide various aggregate operations that can be utilized in transforms such as summarize or pivot. These operations compute descriptive statistics over groups of data objects.
+
+All operations accept the following arguments:
+
+- `data`: your data array.
+- `field`: the field in your data to which the operation will be applied.
+
+The following operations are available:
+
+#### vizjar.operations.first(data, field)
+
+Returns the first value of the specified field in your data.
+
+#### vizjar.operations.last(data, field)
+
+Returns the last value of the specified field in your data.
+
+#### vizjar.operations.sum(data, field)
+
+Computes the sum of all values of the specified field in your data.
+
+#### vizjar.operations.min(data, field)
+
+Returns the minimum value of the specified field in your data.
+
+#### vizjar.operations.max(data, field)
+
+Returns the maximum value of the specified field in your data.
+
+#### vizjar.operations.q1(data, field)
+
+Calculates the quantile 0.25 from the values in the specified field.
+
+#### vizjar.operations.q2(data, field)
+
+Calculates the quantile 0.5 (median) from the values in the specified field.
+
+#### vizjar.operations.q3(data, field)
+
+Calculates the quantile 0.75 from the values in the specified field.
+
+#### vizjar.operations.median(data, field)
+
+Alias of `q2`. Calculates the median from the values in the specified field.
+
+#### vizjar.operations.mean(data, field)
+
+Calculates the mean from the values in the specified field.
+
+#### vizjar.operations.count(data)
+
+Returns the number of items in your data.
+
 ### Transforms
 
 Transforms are plain functions that, given a configuration object, returns a new function that generates derived data. These transforms provide a powerful way to manipulate and extract information from your dataset.
@@ -66,10 +121,7 @@ Transforms can be applied in two ways:
 
 - Using the `transform` field in each geom. Each geom in your visualization can specify its own transformations using the transform option.
 
-
-#### Transforms API
-
-##### vizjar.transform.pivot(options)
+#### vizjar.transform.pivot(options)
 
 The pivot transform allows you to reshape and reorganize your dataset, converting long-format data into a more convenient wide-format. This transformation is particularly useful for improving data analysis and visualization, especially when dealing with categorical variables.
 
@@ -105,7 +157,7 @@ const pivotedData = vizjar.data.transform(data, [
 // ]
 ```
 
-##### vizjar.transform.selectFirst()
+#### vizjar.transform.selectFirst()
 
 A transform function that returns a new dataset containing only the first item of your data.
 
@@ -117,7 +169,7 @@ const newData = vizjar.data.transform(data, [
 // newData = [1]
 ```
 
-##### vizjar.transform.selectLast()
+#### vizjar.transform.selectLast()
 
 A transform function that returns a new dataset containing only the last item of your data.
 
@@ -129,19 +181,19 @@ const newData = vizjar.data.transform(data, [
 // newData = [4]
 ```
 
-##### vizjar.transform.selectMin(options)
+#### vizjar.transform.selectMin(options)
 
 Returns a new dataset containing only the item that has the minimum value in the specified field. The `options` argument is an object that accepts the following parameters: 
 
 - `field` (**mandatory**): The field based on which the minimum value is determined.
 
-##### vizjar.transform.selectMax(options)
+#### vizjar.transform.selectMax(options)
 
 Returns a new dataset containing only the item that has the maximum value in the specified field. The `options` argument is an object that accepts the following parameters:
 
 - `field` (**mandatory**): The field based on which the maximum value is determined.
 
-##### vizjar.transform.stack(options)
+#### vizjar.transform.stack(options)
 
 The stack transform transforms your dataset into a stacked representation suitable for creating stacked visualizations. This transform computes a layout by stacking groups of values and adds two properties to each item of your data, indicating the starting and ending stack values. The stack transform options accepts the following keys:
 
@@ -175,7 +227,7 @@ const stackedData = vizjar.data.transform(data, [
 // ];
 ```
 
-##### vizjar.transform.summarize(options)
+#### vizjar.transform.summarize(options)
 
 The Summarize transform facilitates grouping and summarizing your data, for example for computing counts, sums, averages, and other descriptive statistics over groups of data objects. The summarize transform accepts the following options:
 
