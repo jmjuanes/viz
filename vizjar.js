@@ -329,6 +329,43 @@ const summarizeTransform = (options = {}) => {
     };
 };
 
+// Pivot transform
+const pivotTransform = (options = {}) => {
+    const field = options?.field ?? null;
+    const value = options?.value ?? null;
+    const op = options?.op ?? "sum";
+    if (!field || !value) {
+        throw new Error("[pivot] 'field' and 'value' are mandatory options for pivot transform");
+    }
+    return data => {
+        const partition = generatePartition(data, options?.groupby);
+        const newData = []; // New data object
+        partition.groups.forEach(group => {
+            // First generate the pivot items by the field value
+            const pivotItems = {};
+            group.forEach(datum => {
+                const pivotValue = datum[field];
+                if (typeof pivotItems[pivotValue] === "undefined") {
+                    pivotItems[pivotValue] = [];
+                }
+                pivotItems[pivotValue].push(datum[value]);
+            });
+            // Append all pivot items to the new data object
+            return Object.keys(pivotItems).forEach(name => {
+                const items = pivotItems[name]; //Get pivot items list
+                const newDatum = {}; // New datum object
+                // Append partition grouoby items to the new datum object
+                partition.groupby.forEach(key => {
+                    newDatum[key] = items[0][key];
+                });
+                newDatum[name] = operations[op](items, value); // Generate the aggregation
+                newData.push(datum);
+            });
+        });
+        return newData;
+    };
+};
+
 // Build a linear scale
 // Returns a function f(x) in [rangeMin, rangeMax], where x in [domainStart, domainEnd]
 const linearScale = (options = {}) => {
@@ -956,6 +993,7 @@ const createPlot = (options = {}, parent = null) => {
 export default {
     plot: createPlot,
     path: createPath,
+    operations: operations,
     geom: {
         text: textGeom,
         point: pointGeom,
@@ -979,6 +1017,7 @@ export default {
         ticks: ticks,
     },
     transform: {
+        pivot: pivotTransform,
         selectFirst: selectFirstTransform,
         selectLast: selectLastTransform,
         selectMax: selectMaxTransform,
