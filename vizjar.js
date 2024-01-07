@@ -194,6 +194,11 @@ const createNode = (tag, parent) => {
     return element;
 };
 
+// Apply transforms to the provided data
+const applyTransformsToData = (data, transforms = []) => {
+    return [(transforms || [])].flat().reduce((prevData, transform) => transform(prevData), data);
+};
+
 // A simple transform the returns a new data only with the first item
 const selectFirstTransform = () => {
     return data => [data[0]];
@@ -652,7 +657,9 @@ const getValueOf = (getValue, datum, index, defaultValue = null, scale = null) =
 const buildGeom = (data, options, fn) => {
     // Check if a data object has been provided, so we will generate a geom for each datum
     if (data && Array.isArray(data)) {
-        return data.forEach((item, index) => fn(item, index, options));
+        return applyTransformsToData(data, options.transform || []).forEach((item, index) => {
+            return fn(item, index, options);
+        });
     }
     // If not, generate a single geom using provided options
     else if (data && typeof data === "object") {
@@ -1024,5 +1031,8 @@ export default {
         selectMin: selectMinTransform,
         stack: stackTransform,
         summarize: summarizeTransform,
+    },
+    data: {
+        transform: applyTransformsToData,
     },
 };
