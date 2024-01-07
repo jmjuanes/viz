@@ -56,6 +56,34 @@ parent.appendChild(plot);
 
 **Note**: this is still a work in progress.
 
+### Data Manipulation
+
+#### vizjar.data.transform(data, transforms)
+
+This function is designed to apply a series of provided transforms to user data, returning a new transformed dataset. It accepts the following arguments:
+
+- `data`: the input data that you want to transform.
+- `transforms`: an array of transform functions. Each transform function takes the input data and performs a specific data transformation. The transforms are applied sequentially in the order they appear in the array.
+
+This function returns a new dataset resulting from applying the specified transforms to the input data.
+
+Example:
+
+```javascript
+const transformedData = vizjar.data.transform(data, [
+    vizjar.transforms.stack({
+        field: "category",
+        groupby: "time",
+    }),
+    vizjar.transforms.summarize({
+        groupby: "category",
+        fields: ["value"],
+        ops: ["sum"],
+        as: ["totalValue"],
+    }),
+]);
+```
+
 ### Operations
 
 We provide various aggregate operations that can be utilized in transforms such as summarize or pivot. These operations compute descriptive statistics over groups of data objects.
