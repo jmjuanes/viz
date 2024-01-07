@@ -1,6 +1,45 @@
+// Identity function
+const identity = value => value;
+
 // Clamp the provided value
 const clamp = (value, min, max) => {
     return Math.min(max, Math.max(min, value));
+};
+
+// Calculate the average of the elements of an array
+const average = (values, getValue = identity) => {
+    let sumValues = 0, counter = 0;
+    values.forEach(value => {
+        const v = getValue(value);
+        if (typeof v === "number" && !isNaN(v)) {
+            sumValues = sumValues + value;
+            counter = counter + 1;
+        } 
+    });
+    // Return the average only if the count of numbers is > 0
+    return (counter > 0) ? sumValues / counter : 0;
+};
+
+//Returns the q-quantile value of a given SORTED list of numbers
+//https://en.wikipedia.org/wiki/Quantile 
+//https://en.wikipedia.org/wiki/Quantile#Estimating_the_quantiles_of_a_population 
+const quantile = (q, values, valueOf = identity) => {
+    // Check for no values
+    if (values.length === 0) {
+        return null;
+    }
+    // Check for negative values of q or for more than 2 values in the list
+    if (q <= 0 || values.length < 2) {
+        return valueOf(values[0]);
+    }
+    // Check for numbers of q >= 1
+    if (q >= 1) {
+        return valueOf(values[values.length -1]);
+    }
+    //Calculate tue quantile
+    const h = (values.length - 1) * q;
+    const rh = Math.floor(h);
+    return valueOf(values[rh]) + (valueOf(values[rh + 1]) - valueOf(values[rh])) * (h - rh);
 };
 
 // Nice number for Heckbert algorithm
@@ -83,6 +122,69 @@ const generatePartition = (data, groupByField) => {
     return {groups: groups, groupby: groupby};
 };
 
+// Create an aggregation
+const generateAggregation = (data, field) => {
+    const groups = {};
+    data.forEach(datum => {
+        const key = (field !== "__main") ? datum[field] : "__main"; // Check for no group field provided
+        if (typeof groups[key] === "undefined") {
+            groups[key] = {
+                key: key,
+                items: [],
+                summary: {}
+            };
+        }
+        groups[key].items.push(datum);
+    });
+    return groups;
+};
+
+// Available operations
+const operations = {
+    // Get the field value of the first item
+    first: (values, field) => {
+        return values[0][field];
+    },
+    // Get the field value of the last item
+    last: (values, field) => {
+        return values[values.length - 1][field];
+    },
+    // Calculate the minimum field value
+    min: (values, field) => {
+        return Math.min.apply(null, values.map(v => v[field]));
+    },
+    // Calculate the max field value
+    max: (values, field) => {
+        return Math.max.apply(null, values.map(v => v[field]));
+    },
+    // Calculate que 0,25 quantile
+    q1: (values, field) => {
+        return quantile(0.25, values, value => value[field]);
+    },
+    // Calculate the 0.50 quantile (alias of median)
+    q2: (values, field) => {
+        return quantile(0.50, values, value => value[field]);
+    },
+    // Calculate the 0,75 quantile
+    q3: (values, field) => {
+        return quantile(0.75, values, value => value[field]);
+    },
+    // Calculate the median
+    median: (values, field) => {
+        return quantile(0.50, values, value => value[field]);
+    },
+    // Calculate the mean value
+    mean: (values, field) => {
+        return average(values, value => value[field]);
+    },
+    // Calcualte the sum of all field values
+    sum: (values, field) => {
+        return values.reduce((sum, value) => sum + value[field], 0);
+    },
+    // Count the number of elements
+    count: values => values.length,
+};
+
 // Create SVG elements
 const createNode = (tag, parent) => {
     const element = document.createElementNS("http://www.w3.org/2000/svg", tag);
@@ -152,31 +254,79 @@ const centerStackGenerator = (group, sum, maxSum, field, as) => {
 
 // Stack transform
 const stackTransform = (options = {}) => {
-    // let groupby = (typeof props.groupby === "string") ? props.groupby : null; 
     const align = options.align ?? "default";
     const stack = (align === "center") ? centerStackGenerator : defaultStackGenerator;
     const field = options.field ?? null;
     const as = Array.isArray(options.as) ? options.as : ["yStart", "yEnd"];
-    const {groups, groupby} = generatePartition(data, options.groupby); // Stack groups
-    // let maxSumValue = 0; //Store max value of all groups
-    const groupSum = []; //To store the grpups sums
-    // Get the sum value of all groups
-    groups.forEach((group, index) => {
-        groupSum[index] = 0; //Initialize group sum
-        group.forEach(datum =>{
-            // let value = (field !== null) ? Math.abs(datum[field]) : defaultProps.value;
-            groupSum[index] = groupSum[index] + Math.abs(datum[field]);
+    // let groupby = (typeof props.groupby === "string") ? props.groupby : null; 
+    return data => {
+        const {groups, groupby} = generatePartition(data, options.groupby); // Stack groups
+        // let maxSumValue = 0; //Store max value of all groups
+        const groupSum = []; //To store the grpups sums
+        // Get the sum value of all groups
+        groups.forEach((group, index) => {
+            groupSum[index] = 0; //Initialize group sum
+            group.forEach(datum =>{
+                // let value = (field !== null) ? Math.abs(datum[field]) : defaultProps.value;
+                groupSum[index] = groupSum[index] + Math.abs(datum[field]);
+            });
         });
-    });
-    const groupMaxSum = Math.max.apply(null, groupSum); // Get max group sums
-    const outputData = []; // Output data object
-    // Build the stack for each group
-    groups.forEach((group, index) => {
-        stack(group, groupSum[index], groupMaxSum, field, as).forEach(datum => {
-            outputData.push(datum);
+        const groupMaxSum = Math.max.apply(null, groupSum); // Get max group sums
+        const outputData = []; // Output data object
+        // Build the stack for each group
+        groups.forEach((group, index) => {
+            stack(group, groupSum[index], groupMaxSum, field, as).forEach(datum => {
+                outputData.push(datum);
+            });
         });
-    });
-    return outputData;
+        return outputData;
+    };
+};
+
+// Summarize transform
+const summarizeTransform = (options = {}) => {
+    const groupField = (typeof options.groupby === "string") ? options.groupby : "__main"; 
+    return data => {
+        const groups = generateAggregation(data, groupField);
+        // Check if no operation is provided
+        if (typeof options.fields === "undefined" || !Array.isArray(options.fields)) {
+            Object.keys(groups).forEach(key => {
+                groups[key].summary = {
+                    count: groups[key].items.length
+                };
+            });
+        }
+        else {
+            // Apply transform operations
+            // groups = applyGroupsOperations(groups, props.fields, props.op, props.as);
+            Object.keys(groups).forEach(key => {
+                const output = {}
+                options.fields.forEach((field, index) => {
+                    const value = operations[op[index]](groups[key].items, field); 
+                    const as = (Array.isArray(options.as) && typeof options.as[index] === "string") ? options.as[index] : field;
+                    output[as] = value;
+                });
+                groups[key].summary = output;
+            });
+        }
+        //Check the join to items option
+        if (options.join) {
+            return data.map(datum => {
+                const group = (groupField !== "__main") ? groups[datum[groupField]] : groups[groupField];
+                return {
+                    ...datum,
+                    ...group.summary,
+                };
+            });
+        }
+        // No join option provided --> return only the summary data
+        return Object.keys(groups).map(key => {
+            return {
+                ...groups[key].summary,
+                [groupField]: key,
+            };
+        });
+    };
 };
 
 // Build a linear scale
@@ -834,5 +984,6 @@ export default {
         selectMax: selectMaxTransform,
         selectMin: selectMinTransform,
         stack: stackTransform,
+        summarize: summarizeTransform,
     },
 };
