@@ -1022,6 +1022,8 @@ export default {
         clamp: clamp,
         niceNumber: niceNumber,
         ticks: ticks,
+        average: average,
+        quantile: quantile,
     },
     transform: {
         pivot: pivotTransform,
