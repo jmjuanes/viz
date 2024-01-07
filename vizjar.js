@@ -47,6 +47,42 @@ const ticks = (start, end, n, tight = false) => {
     return ticksValues;
 };
 
+// Check if the provided groupby parameter is valid
+const validateGroupby = value => {
+    if (typeof value === "string" && !!value.trim()) {
+        return true; // Valid groupby value
+    }
+    // Check for array
+    if (value && Array.isArray(value) && value.length > 0) {
+        return value.every(v => typeof v === "string" && !!v.trim());
+    }
+    // Other value --> not valid
+    return false;
+};
+
+// Generate a partition
+const generatePartition = (data, options = {}) => {
+    // TODO: check if groupby is an array
+    // Check if a group option has been provided
+    // if (typeof options.groupby === "undefined" || options.groupby === null || options.groupby === "") {
+    if (!validateGroupby(options.groupby)) {
+        return {groups: [data], groupby: []};
+    }
+    const groups = []; //Output groups
+    const groupby = [options.groupby].flat();
+    const maps = {}; //Groups mappings
+    data.forEach(datum => {
+        const key = groupby.map(f => "" + datum[f]).join(".");
+        if (typeof maps[key] === "undefined") {
+            groups.push([]);
+            maps[key] = groups.length - 1;
+        }
+        groups[maps[key]].push(datum);
+    });
+    // Return generated groups
+    return {groups: groups, groupby: groupby};
+};
+
 // Create SVG elements
 const createNode = (tag, parent) => {
     const element = document.createElementNS("http://www.w3.org/2000/svg", tag);
@@ -54,6 +90,35 @@ const createNode = (tag, parent) => {
         parent.appendChild(element);
     }
     return element;
+};
+
+// A simple transform the returns a new data only with the first item
+const selectFirstTransform = () => {
+    return data => [data[0]];
+};
+
+// A simple transform the returns a new data only with the last item
+const selectLastTransform = () => {
+    return data => [data[data.length - 1]];
+};
+
+// A simple transform that returns a new data containing the datum with the minimum value
+const selectMinTransform = (options = {}) => {
+    // TODO: check if options.field is defined
+    const f = options.field;
+    return data => {
+        return [data.reduce((p, n) => p[f] < n[f] ? p : n, data[0])];
+    };
+};
+
+// A simple transform that returns a new data containing the datum with the maximum value
+// in the specified field
+const selectMaxTransform = (options = {}) => {
+    // TODO: check if options.field is defined
+    const f = options.field;
+    return data => {
+        return [data.reduce((p, n) => p[f] > n[f] ? p : n, data[0])];
+    };
 };
 
 // Build a linear scale
@@ -704,5 +769,11 @@ export default {
         clamp: clamp,
         niceNumber: niceNumber,
         ticks: ticks,
+    },
+    transform: {
+        selectFirst: selectFirstTransform,
+        selectLast: selectLastTransform,
+        selectMax: selectMaxTransform,
+        selectMin: selectMinTransform,
     },
 };
