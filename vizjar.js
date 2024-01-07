@@ -61,15 +61,15 @@ const validateGroupby = value => {
 };
 
 // Generate a partition
-const generatePartition = (data, options = {}) => {
+const generatePartition = (data, groupByField) => {
     // TODO: check if groupby is an array
     // Check if a group option has been provided
     // if (typeof options.groupby === "undefined" || options.groupby === null || options.groupby === "") {
-    if (!validateGroupby(options.groupby)) {
+    if (!validateGroupby(groupByField)) {
         return {groups: [data], groupby: []};
     }
     const groups = []; //Output groups
-    const groupby = [options.groupby].flat();
+    const groupby = [groupByField].flat();
     const maps = {}; //Groups mappings
     data.forEach(datum => {
         const key = groupby.map(f => "" + datum[f]).join(".");
@@ -119,6 +119,64 @@ const selectMaxTransform = (options = {}) => {
     return data => {
         return [data.reduce((p, n) => p[f] > n[f] ? p : n, data[0])];
     };
+};
+
+// Default strack generator
+const defaultStackGenerator = (group, sum, maxSum, field, as) => {
+    const last = {positive: 0, negative: 0};
+    return group.map(datum => {
+        const value = (field !== null) ? datum[field] : 1;
+        const sign = (value < 0) ? "negative" : "positive";
+        const newDatum = Object.assign({}, datum, {
+            [as[0]]: last[sign], // Stack start
+            [as[1]]: last[sign] + value // Stack end
+        });
+        last[sign] = last[sign] + value; // Update last value
+        return newDatum;
+    });
+};
+
+// Centered stak generator
+const centerStackGenerator = (group, sum, maxSum, field, as) => {
+    let last = (maxSum - sum) / 2;
+    return group.map(datum => {
+        const value = (field !== null) ? datum[field] : 1;
+        const newDatum = Object.assign({}, datum, {
+            [as[0]]: last, // Stack start
+            [as[1]]: last + value // Stack end
+        });
+        last = last + value // Update last
+        return newDatum;
+    });
+};
+
+// Stack transform
+const stackTransform = (options = {}) => {
+    // let groupby = (typeof props.groupby === "string") ? props.groupby : null; 
+    const align = options.align ?? "default";
+    const stack = (align === "center") ? centerStackGenerator : defaultStackGenerator;
+    const field = options.field ?? null;
+    const as = Array.isArray(options.as) ? options.as : ["yStart", "yEnd"];
+    const {groups, groupby} = generatePartition(data, options.groupby); // Stack groups
+    // let maxSumValue = 0; //Store max value of all groups
+    const groupSum = []; //To store the grpups sums
+    // Get the sum value of all groups
+    groups.forEach((group, index) => {
+        groupSum[index] = 0; //Initialize group sum
+        group.forEach(datum =>{
+            // let value = (field !== null) ? Math.abs(datum[field]) : defaultProps.value;
+            groupSum[index] = groupSum[index] + Math.abs(datum[field]);
+        });
+    });
+    const groupMaxSum = Math.max.apply(null, groupSum); // Get max group sums
+    const outputData = []; // Output data object
+    // Build the stack for each group
+    groups.forEach((group, index) => {
+        stack(group, groupSum[index], groupMaxSum, field, as).forEach(datum => {
+            outputData.push(datum);
+        });
+    });
+    return outputData;
 };
 
 // Build a linear scale
@@ -775,5 +833,6 @@ export default {
         selectLast: selectLastTransform,
         selectMax: selectMaxTransform,
         selectMin: selectMinTransform,
+        stack: stackTransform,
     },
 };
