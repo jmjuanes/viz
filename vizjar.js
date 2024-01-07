@@ -1,6 +1,45 @@
+// Identity function
+const identity = value => value;
+
 // Clamp the provided value
 const clamp = (value, min, max) => {
     return Math.min(max, Math.max(min, value));
+};
+
+// Calculate the average of the elements of an array
+const average = (values, getValue = identity) => {
+    let sumValues = 0, counter = 0;
+    values.forEach(value => {
+        const v = getValue(value);
+        if (typeof v === "number" && !isNaN(v)) {
+            sumValues = sumValues + value;
+            counter = counter + 1;
+        } 
+    });
+    // Return the average only if the count of numbers is > 0
+    return (counter > 0) ? sumValues / counter : 0;
+};
+
+//Returns the q-quantile value of a given SORTED list of numbers
+//https://en.wikipedia.org/wiki/Quantile 
+//https://en.wikipedia.org/wiki/Quantile#Estimating_the_quantiles_of_a_population 
+const quantile = (q, values, valueOf = identity) => {
+    // Check for no values
+    if (values.length === 0) {
+        return null;
+    }
+    // Check for negative values of q or for more than 2 values in the list
+    if (q <= 0 || values.length < 2) {
+        return valueOf(values[0]);
+    }
+    // Check for numbers of q >= 1
+    if (q >= 1) {
+        return valueOf(values[values.length -1]);
+    }
+    //Calculate tue quantile
+    const h = (values.length - 1) * q;
+    const rh = Math.floor(h);
+    return valueOf(values[rh]) + (valueOf(values[rh + 1]) - valueOf(values[rh])) * (h - rh);
 };
 
 // Nice number for Heckbert algorithm
@@ -47,6 +86,105 @@ const ticks = (start, end, n, tight = false) => {
     return ticksValues;
 };
 
+// Check if the provided groupby parameter is valid
+const validateGroupby = value => {
+    if (typeof value === "string" && !!value.trim()) {
+        return true; // Valid groupby value
+    }
+    // Check for array
+    if (value && Array.isArray(value) && value.length > 0) {
+        return value.every(v => typeof v === "string" && !!v.trim());
+    }
+    // Other value --> not valid
+    return false;
+};
+
+// Generate a partition
+const generatePartition = (data, groupByField) => {
+    // TODO: check if groupby is an array
+    // Check if a group option has been provided
+    // if (typeof options.groupby === "undefined" || options.groupby === null || options.groupby === "") {
+    if (!validateGroupby(groupByField)) {
+        return {groups: [data], groupby: []};
+    }
+    const groups = []; //Output groups
+    const groupby = [groupByField].flat();
+    const maps = {}; //Groups mappings
+    data.forEach(datum => {
+        const key = groupby.map(f => "" + datum[f]).join(".");
+        if (typeof maps[key] === "undefined") {
+            groups.push([]);
+            maps[key] = groups.length - 1;
+        }
+        groups[maps[key]].push(datum);
+    });
+    // Return generated groups
+    return {groups: groups, groupby: groupby};
+};
+
+// Create an aggregation
+const generateAggregation = (data, field) => {
+    const groups = {};
+    data.forEach(datum => {
+        const key = (field !== "__main") ? datum[field] : "__main"; // Check for no group field provided
+        if (typeof groups[key] === "undefined") {
+            groups[key] = {
+                key: key,
+                items: [],
+                summary: {}
+            };
+        }
+        groups[key].items.push(datum);
+    });
+    return groups;
+};
+
+// Available operations
+const operations = {
+    // Get the field value of the first item
+    first: (values, field) => {
+        return values[0][field];
+    },
+    // Get the field value of the last item
+    last: (values, field) => {
+        return values[values.length - 1][field];
+    },
+    // Calculate the minimum field value
+    min: (values, field) => {
+        return Math.min.apply(null, values.map(v => v[field]));
+    },
+    // Calculate the max field value
+    max: (values, field) => {
+        return Math.max.apply(null, values.map(v => v[field]));
+    },
+    // Calculate que 0,25 quantile
+    q1: (values, field) => {
+        return quantile(0.25, values, value => value[field]);
+    },
+    // Calculate the 0.50 quantile (alias of median)
+    q2: (values, field) => {
+        return quantile(0.50, values, value => value[field]);
+    },
+    // Calculate the 0,75 quantile
+    q3: (values, field) => {
+        return quantile(0.75, values, value => value[field]);
+    },
+    // Calculate the median
+    median: (values, field) => {
+        return quantile(0.50, values, value => value[field]);
+    },
+    // Calculate the mean value
+    mean: (values, field) => {
+        return average(values, value => value[field]);
+    },
+    // Calcualte the sum of all field values
+    sum: (values, field) => {
+        return values.reduce((sum, value) => sum + value[field], 0);
+    },
+    // Count the number of elements
+    count: values => values.length,
+};
+
 // Create SVG elements
 const createNode = (tag, parent) => {
     const element = document.createElementNS("http://www.w3.org/2000/svg", tag);
@@ -54,6 +192,183 @@ const createNode = (tag, parent) => {
         parent.appendChild(element);
     }
     return element;
+};
+
+// Apply transforms to the provided data
+const applyTransformsToData = (data, transforms = []) => {
+    return [(transforms || [])].flat().reduce((prevData, transform) => transform(prevData), data);
+};
+
+// A simple transform the returns a new data only with the first item
+const selectFirstTransform = () => {
+    return data => [data[0]];
+};
+
+// A simple transform the returns a new data only with the last item
+const selectLastTransform = () => {
+    return data => [data[data.length - 1]];
+};
+
+// A simple transform that returns a new data containing the datum with the minimum value
+const selectMinTransform = (options = {}) => {
+    // TODO: check if options.field is defined
+    const f = options.field;
+    return data => {
+        return [data.reduce((p, n) => p[f] < n[f] ? p : n, data[0])];
+    };
+};
+
+// A simple transform that returns a new data containing the datum with the maximum value
+// in the specified field
+const selectMaxTransform = (options = {}) => {
+    // TODO: check if options.field is defined
+    const f = options.field;
+    return data => {
+        return [data.reduce((p, n) => p[f] > n[f] ? p : n, data[0])];
+    };
+};
+
+// Default strack generator
+const defaultStackGenerator = (group, sum, maxSum, field, as) => {
+    const last = {positive: 0, negative: 0};
+    return group.map(datum => {
+        const value = (field !== null) ? datum[field] : 1;
+        const sign = (value < 0) ? "negative" : "positive";
+        const newDatum = Object.assign({}, datum, {
+            [as[0]]: last[sign], // Stack start
+            [as[1]]: last[sign] + value // Stack end
+        });
+        last[sign] = last[sign] + value; // Update last value
+        return newDatum;
+    });
+};
+
+// Centered stak generator
+const centerStackGenerator = (group, sum, maxSum, field, as) => {
+    let last = (maxSum - sum) / 2;
+    return group.map(datum => {
+        const value = (field !== null) ? datum[field] : 1;
+        const newDatum = Object.assign({}, datum, {
+            [as[0]]: last, // Stack start
+            [as[1]]: last + value // Stack end
+        });
+        last = last + value // Update last
+        return newDatum;
+    });
+};
+
+// Stack transform
+const stackTransform = (options = {}) => {
+    const align = options.align ?? "default";
+    const stack = (align === "center") ? centerStackGenerator : defaultStackGenerator;
+    const field = options.field ?? null;
+    const as = Array.isArray(options.as) ? options.as : ["yStart", "yEnd"];
+    // let groupby = (typeof props.groupby === "string") ? props.groupby : null; 
+    return data => {
+        const {groups, groupby} = generatePartition(data, options.groupby); // Stack groups
+        // let maxSumValue = 0; //Store max value of all groups
+        const groupSum = []; //To store the grpups sums
+        // Get the sum value of all groups
+        groups.forEach((group, index) => {
+            groupSum[index] = 0; //Initialize group sum
+            group.forEach(datum =>{
+                // let value = (field !== null) ? Math.abs(datum[field]) : defaultProps.value;
+                groupSum[index] = groupSum[index] + Math.abs(datum[field]);
+            });
+        });
+        const groupMaxSum = Math.max.apply(null, groupSum); // Get max group sums
+        const outputData = []; // Output data object
+        // Build the stack for each group
+        groups.forEach((group, index) => {
+            stack(group, groupSum[index], groupMaxSum, field, as).forEach(datum => {
+                outputData.push(datum);
+            });
+        });
+        return outputData;
+    };
+};
+
+// Summarize transform
+const summarizeTransform = (options = {}) => {
+    const groupField = (typeof options.groupby === "string") ? options.groupby : "__main"; 
+    return data => {
+        const groups = generateAggregation(data, groupField);
+        // Check if no operation is provided
+        if (typeof options.fields === "undefined" || !Array.isArray(options.fields)) {
+            Object.keys(groups).forEach(key => {
+                groups[key].summary = {
+                    count: groups[key].items.length
+                };
+            });
+        }
+        else {
+            // Apply transform operations
+            // groups = applyGroupsOperations(groups, props.fields, props.op, props.as);
+            Object.keys(groups).forEach(key => {
+                const output = {}
+                options.fields.forEach((field, index) => {
+                    const value = operations[op[index]](groups[key].items, field); 
+                    const as = (Array.isArray(options.as) && typeof options.as[index] === "string") ? options.as[index] : field;
+                    output[as] = value;
+                });
+                groups[key].summary = output;
+            });
+        }
+        //Check the join to items option
+        if (options.join) {
+            return data.map(datum => {
+                const group = (groupField !== "__main") ? groups[datum[groupField]] : groups[groupField];
+                return {
+                    ...datum,
+                    ...group.summary,
+                };
+            });
+        }
+        // No join option provided --> return only the summary data
+        return Object.keys(groups).map(key => {
+            return {
+                ...groups[key].summary,
+                [groupField]: key,
+            };
+        });
+    };
+};
+
+// Pivot transform
+const pivotTransform = (options = {}) => {
+    const field = options?.field ?? null;
+    const value = options?.value ?? null;
+    const op = options?.op ?? "sum";
+    if (!field || !value) {
+        throw new Error("[pivot] 'field' and 'value' are mandatory options for pivot transform");
+    }
+    return data => {
+        const partition = generatePartition(data, options?.groupby);
+        const newData = []; // New data object
+        partition.groups.forEach(group => {
+            // First generate the pivot items by the field value
+            const pivotItems = {};
+            group.forEach(datum => {
+                const pivotValue = datum[field];
+                if (typeof pivotItems[pivotValue] === "undefined") {
+                    pivotItems[pivotValue] = [];
+                }
+                pivotItems[pivotValue].push(datum[value]);
+            });
+            // Append all pivot items to the new data object
+            return Object.keys(pivotItems).forEach(name => {
+                const items = pivotItems[name]; //Get pivot items list
+                const newDatum = {}; // New datum object
+                // Append partition grouoby items to the new datum object
+                partition.groupby.forEach(key => {
+                    newDatum[key] = items[0][key];
+                });
+                newDatum[name] = operations[op](items, value); // Generate the aggregation
+                newData.push(datum);
+            });
+        });
+        return newData;
+    };
 };
 
 // Build a linear scale
@@ -342,7 +657,9 @@ const getValueOf = (getValue, datum, index, defaultValue = null, scale = null) =
 const buildGeom = (data, options, fn) => {
     // Check if a data object has been provided, so we will generate a geom for each datum
     if (data && Array.isArray(data)) {
-        return data.forEach((item, index) => fn(item, index, options));
+        return applyTransformsToData(data, options.transform || []).forEach((item, index) => {
+            return fn(item, index, options);
+        });
     }
     // If not, generate a single geom using provided options
     else if (data && typeof data === "object") {
@@ -683,6 +1000,7 @@ const createPlot = (options = {}, parent = null) => {
 export default {
     plot: createPlot,
     path: createPath,
+    operations: operations,
     geom: {
         text: textGeom,
         point: pointGeom,
@@ -704,5 +1022,19 @@ export default {
         clamp: clamp,
         niceNumber: niceNumber,
         ticks: ticks,
+        average: average,
+        quantile: quantile,
+    },
+    transform: {
+        pivot: pivotTransform,
+        selectFirst: selectFirstTransform,
+        selectLast: selectLastTransform,
+        selectMax: selectMaxTransform,
+        selectMin: selectMinTransform,
+        stack: stackTransform,
+        summarize: summarizeTransform,
+    },
+    data: {
+        transform: applyTransformsToData,
     },
 };
