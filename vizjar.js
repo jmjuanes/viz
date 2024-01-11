@@ -162,6 +162,100 @@ const interpolateHsl = (start, end) => {
     };
 };
 
+const sequentialScheme = (...args) => Array(3).concat(args);
+
+// Color schemes
+// Source: https://colorbrewer2.org/
+const schemes = {
+    // Categorical
+    paired: ["#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#e31a1c","#fdbf6f","#ff7f00","#cab2d6","#6a3d9a","#ffff99","#b15928"],
+    pastel1: ["#fbb4ae","#b3cde3","#ccebc5","#decbe4","#fed9a6","#ffffcc","#e5d8bd","#fddaec"],
+    pastel2: ["#b3e2cd","#fdcdac","#cbd5e8","#f4cae4","#e6f5c9","#fff2ae","#f1e2cc","#cccccc"],
+    set1: ["#e41a1c","#377eb8","#4daf4a","#984ea3","#ff7f00","#ffff33","#a65628","#f781bf"],
+    set2: ["#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#e5c494","#b3b3b3"],
+    set3: ["#8dd3c7","#ffffb3","#bebada","#fb8072","#80b1d3","#fdb462","#b3de69","#fccde5"],
+    // Sequential single
+    blues: sequentialScheme(
+        ["#deebf7","#9ecae1","#3182bd"]
+        ["#eff3ff","#bdd7e7","#6baed6","#2171b5"],
+        ["#eff3ff","#bdd7e7","#6baed6","#3182bd","#08519c"],
+        ["#eff3ff","#c6dbef","#9ecae1","#6baed6","#3182bd","#08519c"],
+        ["#eff3ff","#c6dbef","#9ecae1","#6baed6","#4292c6","#2171b5","#084594"],
+        ["#f7fbff","#deebf7","#c6dbef","#9ecae1","#6baed6","#4292c6","#2171b5","#084594"],
+        ["#f7fbff","#deebf7","#c6dbef","#9ecae1","#6baed6","#4292c6","#2171b5","#08519c","#08306b"],
+    ),
+    greens: sequentialScheme(
+        ["#e5f5e0","#a1d99b","#31a354"],
+        ["#edf8e9","#bae4b3","#74c476","#238b45"],
+        ["#edf8e9","#bae4b3","#74c476","#31a354","#006d2c"],
+        ["#edf8e9","#c7e9c0","#a1d99b","#74c476","#31a354","#006d2c"],
+        ["#edf8e9","#c7e9c0","#a1d99b","#74c476","#41ab5d","#238b45","#005a32"],
+        ["#f7fcf5","#e5f5e0","#c7e9c0","#a1d99b","#74c476","#41ab5d","#238b45","#005a32"],
+        ["#f7fcf5","#e5f5e0","#c7e9c0","#a1d99b","#74c476","#41ab5d","#238b45","#006d2c","#00441b"],
+    ),
+    greys: sequentialScheme(
+        ["#f0f0f0","#bdbdbd","#636363"],
+        ["#f7f7f7","#cccccc","#969696","#525252"],
+        ["#f7f7f7","#cccccc","#969696","#636363","#252525"],
+        ["#f7f7f7","#d9d9d9","#bdbdbd","#969696","#636363","#252525"],
+        ["#f7f7f7","#d9d9d9","#bdbdbd","#969696","#737373","#525252","#252525"],
+        ["#ffffff","#f0f0f0","#d9d9d9","#bdbdbd","#969696","#737373","#525252","#252525"],
+        ["#ffffff","#f0f0f0","#d9d9d9","#bdbdbd","#969696","#737373","#525252","#252525","#000000"],
+    ),
+    oranges: sequentialScheme(
+        ["#fee6ce","#fdae6b","#e6550d"],
+        ["#feedde","#fdbe85","#fd8d3c","#d94701"],
+        ["#feedde","#fdbe85","#fd8d3c","#e6550d","#a63603"],
+        ["#feedde","#fdd0a2","#fdae6b","#fd8d3c","#e6550d","#a63603"],
+        ["#feedde","#fdd0a2","#fdae6b","#fd8d3c","#f16913","#d94801","#8c2d04"],
+        ["#fff5eb","#fee6ce","#fdd0a2","#fdae6b","#fd8d3c","#f16913","#d94801","#8c2d04"],
+        ["#fff5eb","#fee6ce","#fdd0a2","#fdae6b","#fd8d3c","#f16913","#d94801","#a63603","#7f2704"],
+    ),
+    purples: sequentialScheme(
+        ["#efedf5","#bcbddc","#756bb1"],
+        ["#f2f0f7","#cbc9e2","#9e9ac8","#6a51a3"],
+        ["#f2f0f7","#cbc9e2","#9e9ac8","#756bb1","#54278f"],
+        ["#f2f0f7","#dadaeb","#bcbddc","#9e9ac8","#756bb1","#54278f"],
+        ["#f2f0f7","#dadaeb","#bcbddc","#9e9ac8","#807dba","#6a51a3","#4a1486"],
+        ["#fcfbfd","#efedf5","#dadaeb","#bcbddc","#9e9ac8","#807dba","#6a51a3","#4a1486"],
+        ["#fcfbfd","#efedf5","#dadaeb","#bcbddc","#9e9ac8","#807dba","#6a51a3","#54278f","#3f007d"],
+    ),
+    reds: sequentialScheme(
+        ["#fee0d2","#fc9272","#de2d26"],
+        ["#fee5d9","#fcae91","#fb6a4a","#cb181d"],
+        ["#fee5d9","#fcae91","#fb6a4a","#de2d26","#a50f15"],
+        ["#fee5d9","#fcbba1","#fc9272","#fb6a4a","#de2d26","#a50f15"],
+        ["#fee5d9","#fcbba1","#fc9272","#fb6a4a","#ef3b2c","#cb181d","#99000d"],
+        ["#fff5f0","#fee0d2","#fcbba1","#fc9272","#fb6a4a","#ef3b2c","#cb181d","#99000d"],
+        ["#fff5f0","#fee0d2","#fcbba1","#fc9272","#fb6a4a","#ef3b2c","#cb181d","#a50f15","#67000d"],
+    ),
+    // Sequential multi
+    ylgnbu: sequentialScheme(
+        ["#edf8b1","#7fcdbb","#2c7fb8"],
+        ["#ffffcc","#a1dab4","#41b6c4","#225ea8"],
+        ["#ffffcc","#a1dab4","#41b6c4","#2c7fb8","#253494"],
+        ["#ffffcc","#c7e9b4","#7fcdbb","#41b6c4","#2c7fb8","#253494"],
+        ["#ffffcc","#c7e9b4","#7fcdbb","#41b6c4","#1d91c0","#225ea8","#0c2c84"],
+        ["#ffffd9","#edf8b1","#c7e9b4","#7fcdbb","#41b6c4","#1d91c0","#225ea8","#0c2c84"],
+        ["#ffffd9","#edf8b1","#c7e9b4","#7fcdbb","#41b6c4","#1d91c0","#225ea8","#253494","#081d58"],
+    ),
+};
+
+const buildInterpolator = colorScheme => {
+    return interpolateHsl(colorScheme[0], colorScheme[colorScheme.length - 1]);
+};
+
+// Interpolations
+const schemeInterpolations = {
+    interpolateBlues: buildInterpolator(schemes.blues[9]),
+    interpolateGreens: buildInterpolator(schemes.greens[9]),
+    interpolateGreys: buildInterpolator(schemes.greys[9]),
+    interpolateOranges: buildInterpolator(schemes.oranges[9]),
+    interpolatePurples: buildInterpolator(schemes.purples[9]),
+    interporateReds: buildInterpolator(schemes.reds[9]),
+};
+
+
 // Check if the provided groupby parameter is valid
 const validateGroupby = value => {
     if (typeof value === "string" && !!value.trim()) {
@@ -1118,5 +1212,9 @@ export default {
         format: formatColor,
         toHsl,
         interpolateHsl,
+    },
+    scheme: {
+        ...schemes,
+        ...schemeInterpolations,
     },
 };
