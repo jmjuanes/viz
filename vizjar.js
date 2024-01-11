@@ -255,7 +255,6 @@ const schemeInterpolations = {
     interporateReds: buildInterpolator(schemes.reds[9]),
 };
 
-
 // Check if the provided groupby parameter is valid
 const validateGroupby = value => {
     if (typeof value === "string" && !!value.trim()) {
