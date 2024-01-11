@@ -86,6 +86,82 @@ const ticks = (start, end, n, tight = false) => {
     return ticksValues;
 };
 
+// Parse the provided color
+const parseColor = color => {
+    if (color.startsWith("hsl(")) {
+        const m = color.match(/\d+/g);
+        return Object.fromEntries(["h", "s", "l"].map((k, i) => [k, Number(m[i])]));
+    }
+    else if (color.startsWith("rgb(")) {
+        const m = color.match(/\d+/g);
+        return Object.fromEntries(["r", "g", "b"].map((k, i) => [k, Number(m[i])]))
+    }
+    else if (color.startsWith("#")) {
+        // TODO: supoort shortland hex triplets
+        const m = color.match(/[a-f\d]{2}/g);
+        return Object.fromEntries(["r", "g", "b"].map((k, i) => [k, parseInt(m[i], 16)]));
+    }
+    // No valid color provided
+    return null;
+};
+
+// Format the provided color
+const formatColor = color => {
+    if (typeof color.h !== "undefined") {
+        return `hsl(${color.h}, ${color.s}%, ${color.l}%)`;
+    }
+    else if (typeof color.r !== "undefined") {
+        return `rgb(${[color.r, color.g, color.b].join(",")})`;
+    }
+    // No valid color object provided
+    return null;
+};
+
+// Convert the provided color to HSL
+const toHsl = color => {
+    if (typeof color === "string") {
+        color = parseColor(color);
+    }
+    if (typeof color.h !== "undefined") {
+        return color;
+    }
+    else if (typeof color.r !== "undefined") {
+        const r = color.r / 255, g = color.g / 255, b = color.b / 255;
+        const l = Math.max(r, g, b);
+        const s = l - Math.min(r, g, b);
+        const h = s ? l === r ? (g - b) / s : l === g ? 2 + (b - r) / s : 4 + (r - g) / s : 0;
+        return {
+            h: 60 * h < 0 ? 60 * h + 360 : 60 * h,
+            s: 100 * (s ? (l <= 0.5 ? s / (2 * l - s) : s / (2 - (2 * l - s))) : 0),
+            l: (100 * (2 * l - s)) / 2,
+        };
+    }
+    // No valid color
+    return null;
+};
+
+// Linear interpolation
+const interpolateLinear = (a, b) => {
+    return a === b ? () => a : t => a + clamp(t, 0, 1) * (b - a);
+};
+
+// Hue interpolation
+const interpolateHue = (a, b) => {
+    const d = b - a;
+    return interpolateLinear(a, (d > 180 || d < -180) ? d - 360 * Math.round(d / 360) : d);
+};
+
+// Hsl color interpolator
+const interpolateHsl = (start, end) => {
+    const a = toHsl(start), b = toHsl(end);
+    const h = interpolateHue(a.h, b.h);
+    const s = interpolateLinear(a.s, b.s);
+    const l = interpolateLinear(a.l, b.l);
+    return t => {
+        return formatColor({h: h(t), s: s(t), l: l(t)});
+    };
+};
+
 // Check if the provided groupby parameter is valid
 const validateGroupby = value => {
     if (typeof value === "string" && !!value.trim()) {
@@ -1036,5 +1112,11 @@ export default {
     },
     data: {
         transform: applyTransformsToData,
+    },
+    color: {
+        parse: parseColor,
+        format: formatColor,
+        toHsl,
+        interpolateHsl,
     },
 };
